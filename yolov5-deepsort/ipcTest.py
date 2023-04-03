@@ -108,12 +108,21 @@ try:
     #     topic=CLIENT_TOPIC, on_stream_event=on_hello_world_message)
     # print('Successfully subscribed to topic: %s' %
     #       CLIENT_TOPIC)
-    
+    det = Shell(DEEPSORT_CONFIG_PATH, YOLOV5_WEIGHT_PATH)
     loop_count = 0
     while True:
+        _, frame = queue.get()
+        if not _: break
+        
+        result = det.update(frame)
+        result = result['frame']
+        result = imutils.resize(result, height=500)
+        print(result)
+
         message = {}
         message['message'] = "please show."
         message['sequence'] = loop_count
+        # message['size']
         messageJson = json.dumps(message)
         print(message)
         
