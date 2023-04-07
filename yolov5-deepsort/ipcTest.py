@@ -28,11 +28,14 @@ CLIENT_TOPIC = 'clients/+/hello/world'
 IOTCORE_TOPIC_PUB = 'IotCore/MyClientDevice-raspberrypi1/hello/world'
 TIMEOUT = 10
 
-VIDEO_PATH = './video/pedestrian.mp4'
+# VIDEO_PATH = './video/pedestrian.mp4'
+VIDEO_PATH = '/home/ggc_user/project2Congfig/pedestrian.mp4'
 RESULT_PATH = './out/result.mp4'
 
+# DEEPSORT_CONFIG_PATH = "/home/ggc_user/project2Congfig/deep_sort.yaml"
 DEEPSORT_CONFIG_PATH = "./deep_sort/configs/deep_sort.yaml"
-YOLOV5_WEIGHT_PATH = './weights/yolov5s.pt'
+# YOLOV5_WEIGHT_PATH = './weights/yolov5s.pt'
+YOLOV5_WEIGHT_PATH = '/home/ggc_user/project2Congfig/yolov5s.pt'
 
 class Frame_Thread(Thread):
     def __init__(self):
@@ -51,8 +54,7 @@ def get_video(q):
     # frame_count = 1
     # time1 = 0
     cap = cv2.VideoCapture(VIDEO_PATH)
-    fps = int(cap.get(5))
-    print("start")
+    # fps = int(cap.get(5))
     while True:
     # while frame_count == 1:
         try:
@@ -96,91 +98,62 @@ def publish_binary_message_to_topic(ipc_client, topic, message):
     publish_message = PublishMessage(binary_message=binary_message)
     return ipc_client.publish_to_topic(topic=topic, publish_message=publish_message)
 
+def count(bboxes):
+    vehicle = 0
+    human = 0
+    for (x1, y1, x2, y2, cls_id, pos_id) in bboxes:
+        if cls_id > 0:
+            vehicle += 1
+            ids_vihecle.add(pos_id)
+        else:
+            human += 1
+            ids_human.add(pos_id)
+    return vehicle, human
+
 queue = mp.Queue(maxsize=4)
 frame_thread=Frame_Thread()
 frame_thread.start()
+ids_vihecle = set()
+ids_human = set()
 
 try:
-    # ipc_clientV2 = GreengrassCoreIPCClientV2()
+    ipc_clientV2 = GreengrassCoreIPCClientV2()
 
     # SubscribeToTopic returns a tuple with the response and the operation.
-    # _, operation = ipc_clientV2.subscribe_to_topic(
-    #     topic=CLIENT_TOPIC, on_stream_event=on_hello_world_message)
-    # print('Successfully subscribed to topic: %s' %
-    #       CLIENT_TOPIC)
+    _, operation = ipc_clientV2.subscribe_to_topic(
+        topic=CLIENT_TOPIC, on_stream_event=on_hello_world_message)
+    print('Successfully subscribed to topic: %s' %
+          CLIENT_TOPIC)
     det = Shell(DEEPSORT_CONFIG_PATH, YOLOV5_WEIGHT_PATH)
     loop_count = 0
     while True:
-        _, frame = queue.get()
-        if not _: break
+        frame = queue.get()
+        # if not _: break
         
         result = det.update(frame)
-        result = result['frame']
-        result = imutils.resize(result, height=500)
-        print(result)
+        frame = result['frame']
+        bboxes = result['obj_bboxes']
+        vihicle, human = count(bboxes)
+        frame = imutils.resize(frame, height=500)
+        # print(frame)
 
         message = {}
-        message['message'] = "please show."
+        message['message'] = "园区内流量如下："
+        message['vihicle'] = "当前车辆数为:" + str(vihicle)
+        message['vihicle_flow'] = "当前车流量为:" + str(len(ids_vihecle))
+        message['person'] = "当前行人数为:" + str(human)
+        message['person_flow'] = "当前人流量为:" + str(len(ids_human))
         message['sequence'] = loop_count
         # message['size']
         messageJson = json.dumps(message)
         print(message)
         
-        # ipc_client = GreengrassCoreIPCClientV2()
-        # res = publish_binary_message_to_topic(ipc_clientV2, IOTCORE_TOPIC_PUB, messageJson)
+        ipc_client = GreengrassCoreIPCClientV2()
+        res = publish_binary_message_to_topic(ipc_clientV2, IOTCORE_TOPIC_PUB, messageJson)
         loop_count += 1
-        time.sleep(10)
+        time.sleep(0.1)
     
-    # try:
-    #     print('B\n')
-    #     # print("res:" + res)
-    #     # print("successfully published message:" + result)
-    # except Exception as e:
-    #     print("failed to publish message:" , e)
     
-    # print('Successfully published to topic: ' + CLIENT_DEVICE_HELLO_WORLD_TOPIC_PUB)
-    # except Exception:
-    #     print('Exception occurred', file=sys.stderr)
-    #     traceback.print_exc()
-    #     exit(1)
-    # ipc_client = awsiot.greengrasscoreipc.connect()
-                    
-    # message = "Hello, World!"
-
-    # request = PublishToTopicRequest()
-    # request.topic = CLIENT_DEVICE_HELLO_WORLD_TOPIC_PUB
-    # publish_message = PublishMessage()
-    # publish_message.binary_message = BinaryMessage()
-    # publish_message.binary_message.message = bytes(message, "utf-8")
-    # request.publish_message = publish_message
-    # operation = ipc_client.new_publish_to_topic()
-    # operation.activate(request)
-    # future_response = operation.get_response()
-    # future_response.result(TIMEOUT)
-
-
-    # op = ipc_client.new_publish_to_iot_core()
-    # op.activate(model.PublishToIoTCoreRequest(
-    #     topic_name=CLIENT_DEVICE_HELLO_WORLD_TOPIC_PUB,
-    #     qos=model.QOS.AT_LEAST_ONCE,
-    #     payload=json.dumps(telemetry_data).encode(),
-    # ))
-    # try:
-    #     print('G')
-    #     result = op.get_response().result(timeout=5.0)
-    #     print("successfully published message:" + result)
-    # except Exception as e:
-    #     print("failed to publish message:" , e)
-
-
-    # Keep the main thread alive, or the process will exit.
-    try:
-        while True:
-            time.sleep(10)
-    except InterruptedError:
-        print('Subscribe interrupted.')
-
-    operation.close()
 
 except Exception:
     print('Exception occurred when using IPC subsciption.', file=sys.stderr)

@@ -23,20 +23,22 @@ class Shell(object):
         _, bboxes = self.detector.detect(im)
         bbox_xywh = []
         confs = []
+        types = []
 
         if len(bboxes):
             # Adapt detections to deep sort input format
-            for x1, y1, x2, y2, _, conf in bboxes:
+            for x1, y1, x2, y2, type, conf in bboxes:
                 obj = [
                     int((x1 + x2) / 2), int((y1 + y2) / 2),
                     x2 - x1, y2 - y1
                 ]
+                types.append(type)
                 bbox_xywh.append(obj)
                 confs.append(conf)
             xywhs = torch.Tensor(bbox_xywh)
             confss = torch.Tensor(confs)
 
-            im, obj_bboxes = self.deepsortor.update(xywhs, confss, im)
+            im, obj_bboxes = self.deepsortor.update(xywhs, confss, im, types)
 
             # 绘制 deepsort 结果
             image = tools.plot_bboxes(im, obj_bboxes)

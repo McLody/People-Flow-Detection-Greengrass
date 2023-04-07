@@ -2,6 +2,9 @@ import cv2
 import numpy as np
 
 def plot_bboxes(image, bboxes, line_thickness=None):
+
+    OBJ_LIST = ['person', 'car', 'bus', 'truck']
+
     # Plots one bounding box on image img
     tl = line_thickness or round(
         0.002 * (image.shape[0] + image.shape[1]) / 2) + 1  # line/font thickness
@@ -9,7 +12,7 @@ def plot_bboxes(image, bboxes, line_thickness=None):
     point_radius = 4
 
     for (x1, y1, x2, y2, cls_id, pos_id) in bboxes:
-        if cls_id in ['car', 'bus', 'truck']:
+        if OBJ_LIST[cls_id] in ['car', 'bus', 'truck']:
             color = (0, 0, 255)
         else:
             color = (0, 255, 255)
@@ -21,7 +24,7 @@ def plot_bboxes(image, bboxes, line_thickness=None):
         c1, c2 = (x1, y1), (x2, y2)
         cv2.rectangle(image, c1, c2, color, thickness=tl, lineType=cv2.LINE_AA)
         tf = max(tl - 1, 1)  # font thickness
-        cv2.putText(image, '{}id:{}'.format(cls_id, pos_id), (c1[0], c1[1] - 2), 0, tl / 3,
+        cv2.putText(image, '{}id:{}'.format(OBJ_LIST[cls_id], pos_id), (c1[0], c1[1] - 2), 0, tl / 3,
                     [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
 
         list_pts.append([check_point_x - point_radius, check_point_y - point_radius])

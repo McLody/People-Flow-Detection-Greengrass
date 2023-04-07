@@ -12,15 +12,16 @@ class Deepsortor:
                             max_age=cfg.DEEPSORT.MAX_AGE, n_init=cfg.DEEPSORT.N_INIT, nn_budget=cfg.DEEPSORT.NN_BUDGET,
                             use_cuda=True)
 
-    def update(self, xywhs, confss, image):
+    def update(self, xywhs, confss, image, types):
         bboxes2draw = []
         # Pass detections to deepsort
-        outputs = self.deepsort.update(xywhs, confss, image)
+        outputs = self.deepsort.update(xywhs, confss, image, types)
 
         for value in list(outputs):
-            x1, y1, x2, y2, track_id = value
+            x1, y1, x2, y2, type, track_id = value
             bboxes2draw.append(
-                (x1, y1, x2, y2, '', track_id)
+                (x1, y1, x2, y2, type, track_id)
             )
+            print(type)
 
         return image, bboxes2draw

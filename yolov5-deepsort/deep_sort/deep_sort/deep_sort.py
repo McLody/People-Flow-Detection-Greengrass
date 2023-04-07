@@ -27,14 +27,14 @@ class DeepSort(object):
         metric = NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
         self.tracker = Tracker(metric, max_iou_distance=max_iou_distance, max_age=max_age, n_init=n_init)
 
-    def update(self, bbox_xywh, confidences, ori_img):
+    def update(self, bbox_xywh, confidences, ori_img, types):
         self.height, self.width = ori_img.shape[:2]
         # generate detections
         # 从原图中抠取bbox对应图片并计算得到相应的特征
         features = self._get_features(bbox_xywh, ori_img)
         bbox_tlwh = self._xywh_to_tlwh(bbox_xywh)        
         # 筛选掉小于min_confidence的目标，并构造一个Detection对象构成的列表
-        detections = [Detection(bbox_tlwh[i], conf, features[i]) for i,conf in enumerate(confidences) if conf>self.min_confidence]
+        detections = [Detection(bbox_tlwh[i], conf, features[i], types[i]) for i,conf in enumerate(confidences) if conf>self.min_confidence]
 
         # run on non-maximum supression
         boxes = np.array([d.tlwh for d in detections])
@@ -48,13 +48,16 @@ class DeepSort(object):
 
         # output bbox identities
         outputs = []
+        types = []
         for track in self.tracker.tracks:
             if not track.is_confirmed() or track.time_since_update > 1:
                 continue
             box = track.to_tlwh()
             x1,y1,x2,y2 = self._tlwh_to_xyxy(box)
             track_id = track.track_id
-            outputs.append(np.array([x1,y1,x2,y2,track_id], dtype=int))
+            type = self.convert_type_to_int(track.type)
+            outputs.append(np.array([x1,y1,x2,y2, type, track_id], dtype=np.int))
+            types.append(type)
         if len(outputs) > 0:
             outputs = np.stack(outputs,axis=0)
         return outputs
@@ -121,5 +124,18 @@ class DeepSort(object):
         else:
             features = np.array([])
         return features
+    
+    @staticmethod
+    def convert_type_to_int(type):
+        if(type == 'person'):
+            return 0
+        elif type == 'car':
+            return 1
+        elif type == 'bus':
+            return 2
+        else:
+            return 3
+            
+    
 
 
