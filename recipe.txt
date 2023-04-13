@@ -1,0 +1,38 @@
+{
+  "RecipeFormatVersion": "2020-01-25",
+  "ComponentName": "com.mclody.PeopleFlowDetectionGreengrassLocal",
+  "ComponentVersion": "1.0.1",
+  "ComponentType": "aws.greengrass.generic",
+  "ComponentDescription": "Project 2 Local.",
+  "ComponentPublisher": "Me",
+  "ComponentConfiguration": {
+    "DefaultConfiguration": {
+      "accessControl": {
+        "aws.greengrass.ipc.pubsub": {
+          "com.mclody.PeopleFlowDetectionGreengrassLocal:pubsub:1": {
+            "policyDescription": "Allows access to subscribe/public to all topics.",
+            "operations": [
+              "aws.greengrass#PublishToTopic",
+              "aws.greengrass#SubscribeToTopic"
+            ],
+            "resources": [
+              "*"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "Manifests": [
+    {
+      "Platform": {
+        "os": "linux"
+      },
+      "Name": "Linux",
+      "Lifecycle": {
+        "Run": "python3 -u {artifacts:path}/ipcTest.py"
+      }
+    }
+  ],
+  "Lifecycle": {}
+}

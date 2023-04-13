@@ -22,6 +22,6 @@ class Deepsortor:
             bboxes2draw.append(
                 (x1, y1, x2, y2, type, track_id)
             )
-            print(type)
+            # print(type)
 
         return image, bboxes2draw
